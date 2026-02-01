@@ -14,8 +14,8 @@
             <input type="text" placeholder="Введите текст сообщения" />
             <button class="btn">Отправить</button>
             <button class="btn secondary">Гео-локация</button>
-            <span id="start-span">Начало переписки</span>
     </div>
+    <span id="start-span">Начало переписки</span>
 </div>
 <script src="index.js"></script>
 
