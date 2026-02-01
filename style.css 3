@@ -120,5 +120,5 @@ body {
   font-size: 12px;
   font-style: italic;
   color: rgba(0, 0, 0, 0.3);
-  margin-left: 200px;
+  margin-left: 400px;
 }
