@@ -1,0 +1,107 @@
+const clientMessageBox = document.querySelector("input[type='text']");
+const sendMessageButton = document.querySelector(".btn");
+const sendGeoMessageButton = document.querySelector(".btn.secondary");
+const startSpan = document.querySelector("#start-span");
+
+const messageContainer = document.createElement("div");
+messageContainer.className = "messages-container";
+startSpan.after(messageContainer);
+
+let skipEchoMessage = false;
+let repeatIntervalId = 0;
+let echoWebSocket;
+
+function initEchoWebSocket() {
+    echoWebSocket = new WebSocket("wss://echo-ws-service.herokuapp.com");
+
+    echoWebSocket.onopen = () => {
+        addMessage(getServerMessage("Привет! Соединение установлено."));
+        clearInterval(repeatIntervalId);
+    };
+
+    echoWebSocket.onclose = () => {
+        addMessage(getServerMessage("Соединение закрыто. Повтор через 10 секунд."));
+        if (!repeatIntervalId) {
+            repeatIntervalId = setInterval(initEchoWebSocket, 10000);
+        }
+    };
+
+    echoWebSocket.onmessage = (event) => {
+        if (!skipEchoMessage) {
+            addMessage(getServerMessage(event.data));
+        }
+        skipEchoMessage = false;
+    };
+
+    echoWebSocket.onerror = () => {
+        addMessage(getErrorMessage("Произошла ошибка."));
+    };
+}
+
+initEchoWebSocket();
+
+sendMessageButton.addEventListener("click", sendMsg);
+sendGeoMessageButton.addEventListener("click", sendGeo);
+
+function sendMsg() {
+    const text = clientMessageBox.value.trim();
+    if (!text) return;
+
+    addMessage(getClientMessage(text));
+    echoWebSocket.send(text);
+    clientMessageBox.value = "";
+}
+
+function sendGeo() {
+    if (!navigator.geolocation) {
+        addMessage(getClientMessage("Местоположение недоступно."));
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const link = `https://www.openstreetmap.org/#map=18/${position.coords.latitude}/${position.coords.longitude}`;
+
+            addMessage(
+                getClientMessage(
+                    `<a href="${link}" target="_blank" style="color:dodgerblue;text-decoration:none">Гео-локация</a>`
+                )
+            );
+
+            skipEchoMessage = true;
+            echoWebSocket.send("Гео-локация");
+        },
+        () => {
+            addMessage(getClientMessage("Ошибка получения гео-локации."));
+        }
+    );
+}
+
+function getClientMessage(text) {
+    return `
+        <div class="message right-message">
+            <span>${text}</span>
+        </div>
+    `;
+}
+
+function getServerMessage(text) {
+    return `
+        <div class="message left-message">
+            <span>${text}</span>
+        </div>
+    `;
+}
+
+function getErrorMessage(text) {
+    return `
+        <div class="message error-message">
+            <span>${text}</span>
+        </div>
+    `;
+}
+
+function addMessage(html) {
+    messageContainer.insertAdjacentHTML("beforeend", html);
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+}
